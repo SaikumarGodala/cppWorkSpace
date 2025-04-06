@@ -45,6 +45,12 @@ compile_commands.json
 *.swp
 *~
 
+# macOS-specific files
+.DS_Store
+
+# clangd cache
+.cache/
+
 # Conan specific
 conan.lock
 conanbuildinfo.*

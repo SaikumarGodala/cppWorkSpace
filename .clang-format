@@ -1,0 +1,9 @@
+# Google C++ Style Guide
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 80
+AllowShortFunctionsOnASingleLine: Empty
+DerivePointerAlignment: false
+PointerAlignment: Left
+SortIncludes: true
+IncludeBlocks: Preserve

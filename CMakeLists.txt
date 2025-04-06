@@ -39,7 +39,7 @@ set(SOURCES
 if (SOURCES)
     add_library(${PROJECT_NAME}_lib ${SOURCES})
     target_include_directories(${PROJECT_NAME}_lib PUBLIC 
-        include
+        ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_BINARY_DIR}/generated
     )
     target_link_libraries(${PROJECT_NAME}_lib PRIVATE Boost::boost)
@@ -63,96 +63,6 @@ cmake_dependent_option(
     USE_CLANG_TIDY "Enable clang-tidy integration" ON
     "CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR" OFF
 )
-
-# Find Git
-find_package(Git QUIET)
-if(GIT_FOUND)
-    # Verify minimum Git version
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} --version
-        OUTPUT_VARIABLE GIT_VERSION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if(GIT_VERSION VERSION_LESS 2.0)
-        message(WARNING "Git version >= 2.0 recommended, found: ${GIT_VERSION}")
-    endif()
-
-    # Get the current working branch
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_BRANCH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    # Get the latest commit hash
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_COMMIT_HASH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    # Get the current working branch
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_BRANCH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    # Get the latest commit hash
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_COMMIT_HASH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-endif()
-
-# Enable warnings and additional flags
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    # Add compiler options for Debug and Release builds
-    target_compile_options(${PROJECT_NAME}_lib PRIVATE
-        $<$<CONFIG:Debug>:-g -O0 -Wall -Wextra -Wpedantic> # Debug: Enable debug symbols, disable optimizations
-        $<$<CONFIG:Release>:-O3 -DNDEBUG -Wall -Wextra -Wpedantic> # Release: Enable optimizations, disable debug symbols
-    )
-    if (TARGET ${PROJECT_NAME})
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Debug>:-g -O0 -Wall -Wextra -Wpedantic>
-            $<$<CONFIG:Release>:-O3 -DNDEBUG -Wall -Wextra -Wpedantic>
-        )
-    endif()
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    # Add compiler options for Debug and Release builds (MSVC)
-    target_compile_options(${PROJECT_NAME}_lib PRIVATE
-        $<$<CONFIG:Debug>:/Zi /Od /W4> # Debug: Enable debug symbols, disable optimizations
-        $<$<CONFIG:Release>:/O2 /DNDEBUG /W4> # Release: Enable optimizations, disable debug symbols
-    )
-    if (TARGET ${PROJECT_NAME})
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Debug>:/Zi /Od /W4>
-            $<$<CONFIG:Release>:/O2 /DNDEBUG /W4>
-        )
-    endif()
-endif()
-
-# Add after compiler options setup
-option(ENABLE_SANITIZERS "Enable sanitizers in debug builds" OFF)
-if(ENABLE_SANITIZERS AND CMAKE_BUILD_TYPE MATCHES "Debug|Test")
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        set(SANITIZER_FLAGS "-fsanitize=address,undefined,leak -fno-omit-frame-pointer")
-        add_compile_options(${SANITIZER_FLAGS})
-        add_link_options(${SANITIZER_FLAGS})
-    endif()
-endif()
-
-# Integrate clang-tidy
-option(ENABLE_CLANG_TIDY "Enable clang-tidy checks" ON)
-find_program(CLANG_TIDY clang-tidy)
-if (ENABLE_CLANG_TIDY AND CLANG_TIDY)
-    set(CMAKE_CXX_CLANG_TIDY clang-tidy;-checks=cppcoreguidelines-*,-modernize-use-trailing-return-type)
-endif()
 
 # Set output directories
 set_target_properties(${PROJECT_NAME}_lib PROPERTIES
@@ -182,47 +92,13 @@ endif()
 # Option to enable or disable building tests
 option(BUILD_TESTS "Build tests" ON)
 
-if (BUILD_TESTS AND CMAKE_BUILD_TYPE STREQUAL "Test")
+if (BUILD_TESTS)
     # Enable testing
     enable_testing()
 
-    # Fetch Google Test
-    include(FetchContent)
-    FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.tar.gz
-    )
-    # Prevent Google Test from overriding compiler/linker options
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
-
     # Add subdirectory for tests
-    add_subdirectory(tests)
-    
-    # Add code coverage option
-    option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
-    if(ENABLE_COVERAGE)
-        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-            target_compile_options(${PROJECT_NAME}_lib PRIVATE --coverage)
-            target_link_options(${PROJECT_NAME}_lib PRIVATE --coverage)
-            foreach(TEST_TARGET memory_issues_ut thread_issues_ut)
-                target_compile_options(${TEST_TARGET} PRIVATE --coverage)
-                target_link_options(${TEST_TARGET} PRIVATE --coverage)
-            endforeach()
-        endif()
-    endif()
-endif()
-
-# Add to the testing section
-option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
-if(ENABLE_COVERAGE AND CMAKE_BUILD_TYPE MATCHES "Debug|Test")
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options(${PROJECT_NAME}_lib PRIVATE --coverage)
-        target_link_options(${PROJECT_NAME}_lib PRIVATE --coverage)
-        foreach(TEST_TARGET memory_issues_ut thread_issues_ut)
-            target_compile_options(${TEST_TARGET} PRIVATE --coverage)
-            target_link_options(${TEST_TARGET} PRIVATE --coverage)
-        endforeach()
+    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt)
+        add_subdirectory(tests)
     endif()
 endif()
 

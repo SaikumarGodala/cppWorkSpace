@@ -13,9 +13,13 @@ function(apply_compiler_options target_name)
     endif()
 endfunction()
 
+# Apply compiler options globally to the library and executable targets
 if (TARGET ${PROJECT_NAME}_lib)
     apply_compiler_options(${PROJECT_NAME}_lib)
+else()
+    message(WARNING "Target ${PROJECT_NAME}_lib does not exist. Skipping compiler options.")
 endif()
+
 if (TARGET ${PROJECT_NAME})
     apply_compiler_options(${PROJECT_NAME})
 endif()

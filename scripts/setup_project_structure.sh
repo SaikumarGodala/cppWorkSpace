@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Base directories
-for dir in include/TestProject src tests third_party cmake docs scripts; do
-    if [ ! -d "$dir" ]; then
-        mkdir -p "$dir"
-    else
-        echo "Directory $dir already exists."
-    fi
-done
+mkdir -p include/TestProject
+mkdir -p src
+mkdir -p tests
+mkdir -p third_party
+mkdir -p cmake
+mkdir -p docs
+mkdir -p scripts
 
 # Placeholder files
 touch include/TestProject/Module1.hpp

@@ -1,6 +1,6 @@
 option(BUILD_TESTS "Build tests" ON)
 
-if (BUILD_TESTS AND CMAKE_BUILD_TYPE STREQUAL "Test")
+if (BUILD_TESTS AND CMAKE_BUILD_TYPE MATCHES "Debug|Test")
     enable_testing()
 
     include(FetchContent)
@@ -11,8 +11,10 @@ if (BUILD_TESTS AND CMAKE_BUILD_TYPE STREQUAL "Test")
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
 
-    add_subdirectory(tests)
+    # Add subdirectory for tests
+    add_subdirectory(${CMAKE_SOURCE_DIR}/tests)
 
+    # Add code coverage option
     option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
     if(ENABLE_COVERAGE)
         if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
