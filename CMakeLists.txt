@@ -1,28 +1,16 @@
 cmake_minimum_required(VERSION 3.16)
 
-
 # Project name and version
 project(TestProject VERSION 1.0 LANGUAGES CXX)
 
-# Find Git
-find_package(Git QUIET)
-if(GIT_FOUND)
-    # Get the current working branch
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_BRANCH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    # Get the latest commit hash
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_COMMIT_HASH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-endif()
+# Include modularized CMake scripts
+include(cmake/FindGit.cmake)
+include(cmake/CompilerOptions.cmake)
+include(cmake/Sanitizers.cmake)
+include(cmake/ClangTidy.cmake)
+include(cmake/Testing.cmake)
+include(CMakeDependentOption)
+# include(cmake/InstallRules.cmake)
 
 # Configure version header
 configure_file(
@@ -49,26 +37,77 @@ set(SOURCES
 
 # Ensure SOURCES is not empty
 if (SOURCES)
-    # Add library for shared code
     add_library(${PROJECT_NAME}_lib ${SOURCES})
     target_include_directories(${PROJECT_NAME}_lib PUBLIC 
         include
         ${CMAKE_BINARY_DIR}/generated
     )
-    target_link_libraries(${PROJECT_NAME}_lib PRIVATE 
-        Boost::boost
-    )
+    target_link_libraries(${PROJECT_NAME}_lib PRIVATE Boost::boost)
 
-    # Add executable only for Debug and Release builds
+    # Apply compiler options to the library
+    apply_compiler_options(${PROJECT_NAME}_lib)
+
     if (NOT CMAKE_BUILD_TYPE STREQUAL "Test")
         add_executable(${PROJECT_NAME} src/main.cpp)
-        target_link_libraries(${PROJECT_NAME} PRIVATE 
-            ${PROJECT_NAME}_lib
-            Boost::boost
-        )
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_lib Boost::boost)
+
+        # Apply compiler options to the executable
+        apply_compiler_options(${PROJECT_NAME})
     endif()
 else()
     message(FATAL_ERROR "No source files found in the 'src' directory.")
+endif()
+
+# Optional packages with dependencies
+cmake_dependent_option(
+    USE_CLANG_TIDY "Enable clang-tidy integration" ON
+    "CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR" OFF
+)
+
+# Find Git
+find_package(Git QUIET)
+if(GIT_FOUND)
+    # Verify minimum Git version
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} --version
+        OUTPUT_VARIABLE GIT_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(GIT_VERSION VERSION_LESS 2.0)
+        message(WARNING "Git version >= 2.0 recommended, found: ${GIT_VERSION}")
+    endif()
+
+    # Get the current working branch
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_BRANCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # Get the latest commit hash
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # Get the current working branch
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_BRANCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # Get the latest commit hash
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 endif()
 
 # Enable warnings and additional flags
@@ -95,6 +134,16 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             $<$<CONFIG:Debug>:/Zi /Od /W4>
             $<$<CONFIG:Release>:/O2 /DNDEBUG /W4>
         )
+    endif()
+endif()
+
+# Add after compiler options setup
+option(ENABLE_SANITIZERS "Enable sanitizers in debug builds" OFF)
+if(ENABLE_SANITIZERS AND CMAKE_BUILD_TYPE MATCHES "Debug|Test")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        set(SANITIZER_FLAGS "-fsanitize=address,undefined,leak -fno-omit-frame-pointer")
+        add_compile_options(${SANITIZER_FLAGS})
+        add_link_options(${SANITIZER_FLAGS})
     endif()
 endif()
 
@@ -149,8 +198,60 @@ if (BUILD_TESTS AND CMAKE_BUILD_TYPE STREQUAL "Test")
 
     # Add subdirectory for tests
     add_subdirectory(tests)
+    
+    # Add code coverage option
+    option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
+    if(ENABLE_COVERAGE)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            target_compile_options(${PROJECT_NAME}_lib PRIVATE --coverage)
+            target_link_options(${PROJECT_NAME}_lib PRIVATE --coverage)
+            foreach(TEST_TARGET memory_issues_ut thread_issues_ut)
+                target_compile_options(${TEST_TARGET} PRIVATE --coverage)
+                target_link_options(${TEST_TARGET} PRIVATE --coverage)
+            endforeach()
+        endif()
+    endif()
+endif()
+
+# Add to the testing section
+option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
+if(ENABLE_COVERAGE AND CMAKE_BUILD_TYPE MATCHES "Debug|Test")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(${PROJECT_NAME}_lib PRIVATE --coverage)
+        target_link_options(${PROJECT_NAME}_lib PRIVATE --coverage)
+        foreach(TEST_TARGET memory_issues_ut thread_issues_ut)
+            target_compile_options(${TEST_TARGET} PRIVATE --coverage)
+            target_link_options(${TEST_TARGET} PRIVATE --coverage)
+        endforeach()
+    endif()
 endif()
 
 # Find Conan-provided packages
 find_package(Boost REQUIRED)
+
+# Add near the end of the file
+include(GNUInstallDirs)
+
+# Install library
+install(
+    TARGETS ${PROJECT_NAME}_lib
+    EXPORT ${PROJECT_NAME}Targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+# Install headers
+install(
+    DIRECTORY ${CMAKE_SOURCE_DIR}/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.hpp"
+)
+
+# Install generated version header
+install(
+    FILES ${CMAKE_BINARY_DIR}/generated/version.hpp
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+)
 

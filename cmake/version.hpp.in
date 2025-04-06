@@ -1,8 +1,10 @@
 #pragma once
 
+namespace @PROJECT_NAME@ {
 namespace version {
     static constexpr const char* PROJECT_NAME = "@PROJECT_NAME@";
-    static constexpr const char* PROJECT_VERSION = "@PROJECT_VERSION@";
+    static constexpr const char* VERSION = "@PROJECT_VERSION@";
     static constexpr const char* GIT_BRANCH = "@GIT_BRANCH@";
-    static constexpr const char* GIT_COMMIT_HASH = "@GIT_COMMIT_HASH@";
-}
+    static constexpr const char* GIT_COMMIT = "@GIT_COMMIT_HASH@";
+} // namespace version
+} // namespace @PROJECT_NAME@

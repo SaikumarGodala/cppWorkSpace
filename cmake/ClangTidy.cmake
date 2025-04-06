@@ -1,0 +1,5 @@
+option(ENABLE_CLANG_TIDY "Enable clang-tidy checks" ON)
+find_program(CLANG_TIDY clang-tidy)
+if (ENABLE_CLANG_TIDY AND CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy;-checks=cppcoreguidelines-*,-modernize-use-trailing-return-type)
+endif()
