@@ -1,3 +1,0 @@
-repository='external project URL'
-module='https://github.com/aminya/project_options/archive/refs/tags/v0.20.0.zip'
-tag=''

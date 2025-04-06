@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/gskr/cppWorkSpace/build",
-  "command": "/usr/bin/g++-12 -g -o CMakeFiles/First.dir/main.cpp.o -c /home/gskr/cppWorkSpace/main.cpp",
-  "file": "/home/gskr/cppWorkSpace/main.cpp"
-}
-]
