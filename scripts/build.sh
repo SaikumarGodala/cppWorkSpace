@@ -7,7 +7,7 @@ build_preset() {
     local preset=$1
     echo "Building with preset: $preset"
     cmake --preset $preset
-    cmake --build --preset build-$preset
+    cmake --build --preset $preset
 }
 
 # Build Debug configuration

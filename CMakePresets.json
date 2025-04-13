@@ -40,15 +40,21 @@
   "buildPresets": [
     {
       "name": "build-debug",
-      "configurePreset": "debug"
+      "configurePreset": "debug",
+      "description": "Build the Debug configuration",
+      "targets": ["all"]
     },
     {
       "name": "build-release",
-      "configurePreset": "release"
+      "configurePreset": "release",
+      "description": "Build the Release configuration",
+      "targets": ["all"]
     },
     {
       "name": "build-test",
-      "configurePreset": "test"
+      "configurePreset": "test",
+      "description": "Build the Test configuration",
+      "targets": ["all"]
     }
   ],
   "testPresets": [

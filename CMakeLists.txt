@@ -37,6 +37,7 @@ set(SOURCES
 
 # Ensure SOURCES is not empty
 if (SOURCES)
+    # Create the library target and specify include directories
     add_library(${PROJECT_NAME}_lib ${SOURCES})
     target_include_directories(${PROJECT_NAME}_lib PUBLIC 
         ${CMAKE_SOURCE_DIR}/include
@@ -47,9 +48,10 @@ if (SOURCES)
     # Apply compiler options to the library
     apply_compiler_options(${PROJECT_NAME}_lib)
 
+    # Create the executable target only if the build type is not "Test"
     if (NOT CMAKE_BUILD_TYPE STREQUAL "Test")
         add_executable(${PROJECT_NAME} src/main.cpp)
-        target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_lib Boost::boost)
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_lib)
 
         # Apply compiler options to the executable
         apply_compiler_options(${PROJECT_NAME})
@@ -60,7 +62,7 @@ endif()
 
 # Optional packages with dependencies
 cmake_dependent_option(
-    USE_CLANG_TIDY "Enable clang-tidy integration" ON
+    USE_CLANG_TIDY "Enable clang-tidy integration" OFF
     "CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR" OFF
 )
 
@@ -82,24 +84,13 @@ target_compile_definitions(${PROJECT_NAME}_lib PRIVATE
     $<$<CONFIG:Release>:NDEBUG>
 )
 
-if (TARGET ${PROJECT_NAME})
-    target_compile_definitions(${PROJECT_NAME} PRIVATE 
-        $<$<CONFIG:Debug>:DEBUG_BUILD>
-        $<$<CONFIG:Release>:NDEBUG>
-    )
-endif()
-
 # Option to enable or disable building tests
 option(BUILD_TESTS "Build tests" ON)
 
+# Add subdirectory for tests
 if (BUILD_TESTS)
-    # Enable testing
     enable_testing()
-
-    # Add subdirectory for tests
-    if(EXISTS ${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt)
-        add_subdirectory(tests)
-    endif()
+    add_subdirectory(tests)
 endif()
 
 # Find Conan-provided packages
@@ -130,4 +121,6 @@ install(
     FILES ${CMAKE_BINARY_DIR}/generated/version.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
 )
+
+
 

@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.10)
 project(tests)
 
-# Add test executables
-add_executable(memory_issues_ut memory_issues_ut.cpp)
-target_link_libraries(memory_issues_ut PRIVATE TestProject_lib gtest gtest_main pthread)
+# Dynamically add test executables
+set(TEST_SOURCES
+    memory_issues_ut.cpp
+    thread_issues_ut.cpp
+)
 
-add_executable(thread_issues_ut thread_issues_ut.cpp)
-target_link_libraries(thread_issues_ut PRIVATE TestProject_lib gtest gtest_main pthread)
-
-# Register tests with CTest
-add_test(NAME memory_issues_ut COMMAND memory_issues_ut)
-add_test(NAME thread_issues_ut COMMAND thread_issues_ut)
+foreach(TEST_SOURCE ${TEST_SOURCES})
+    get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
+    add_executable(${TEST_NAME} ${TEST_SOURCE})
+    target_link_libraries(${TEST_NAME} PRIVATE TestProject_lib gtest gtest_main pthread)
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+endforeach()
