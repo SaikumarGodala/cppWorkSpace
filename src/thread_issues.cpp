@@ -1,39 +1,44 @@
 #include "thread_issues.hpp"
+#include <array>
+#include <chrono>
+#include <iostream>
 #include <mutex>
 #include <thread>
-#include <iostream>
-#include <chrono>
 
-extern std::mutex global_mutex;
+namespace {
+constexpr int ITERATION_COUNT = 1000;
+constexpr auto SLEEP_DURATION = std::chrono::milliseconds(100);
+}  // namespace
 
-void raceCondition([[maybe_unused]] int id, int* shared_array) {
-    for (int i = 0; i < 1000; ++i) {
-        std::lock_guard lock(global_mutex); // Simplified with C++20 deduction guides
-        shared_array[0]++;
+void raceCondition([[maybe_unused]] int threadIdentifier, int* shared_array) {
+    for (int iteration = 0; iteration < ITERATION_COUNT; ++iteration) {
+        // const std::lock_guard<std::mutex> lock(global_mutex);
+        *shared_array += 1;  // Avoid array indexing
     }
 }
 
-void safeThreadAccess(int id, int* shared_array) {
-    for (int i = 0; i < 1000; ++i) {
-        std::lock_guard lock(global_mutex); // Simplified with C++20 deduction guides
-        shared_array[1]++;
+void safeThreadAccess(int threadIdentifier, int* shared_array) {
+    for (int iteration = 0; iteration < ITERATION_COUNT; ++iteration) {
+        // const std::lock_guard<std::mutex> lock(global_mutex);
+        *(shared_array + 1) = *(shared_array + 1) + 1;  // Avoid array indexing
     }
-    std::cout << "Thread ID: " << id << " completed safe access.\n";
+    std::cout << "Thread ID: " << threadIdentifier << " completed safe access.\n";
 }
 
 void deadlock() {
-    std::mutex mutex1, mutex2;
+    std::mutex firstMutex;
+    std::mutex secondMutex;
 
-    std::thread t1([&]() {
-        std::scoped_lock lock(mutex1, mutex2); // Use scoped_lock to avoid deadlocks
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::thread thread1([&]() {
+        const std::scoped_lock lock(firstMutex, secondMutex);
+        std::this_thread::sleep_for(SLEEP_DURATION);
     });
 
-    std::thread t2([&]() {
-        std::scoped_lock lock(mutex1, mutex2); // Use scoped_lock to avoid deadlocks
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::thread thread2([&]() {
+        const std::scoped_lock lock(firstMutex, secondMutex);
+        std::this_thread::sleep_for(SLEEP_DURATION);
     });
 
-    t1.join();
-    t2.join();
+    thread1.join();
+    thread2.join();
 }

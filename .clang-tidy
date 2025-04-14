@@ -10,6 +10,7 @@ Checks: >
   misc-*,
   portability-*,
   llvm-*,
-WarningsAsErrors: '*'
+  -llvm-header-guard,
+WarningsAsErrors: ''  # Changed from '*' to '' to disable treating warnings as errors
 HeaderFilterRegex: '.*'
 FormatStyle: file

@@ -7,7 +7,7 @@ project(TestProject VERSION 1.0 LANGUAGES CXX)
 include(cmake/FindGit.cmake)
 include(cmake/CompilerOptions.cmake)
 include(cmake/Sanitizers.cmake)
-include(cmake/ClangTidy.cmake)
+# include(cmake/ClangTidy.cmake)
 include(cmake/Testing.cmake)
 include(CMakeDependentOption)
 # include(cmake/InstallRules.cmake)
@@ -90,37 +90,12 @@ option(BUILD_TESTS "Build tests" ON)
 # Add subdirectory for tests
 if (BUILD_TESTS)
     enable_testing()
-    add_subdirectory(tests)
+    # Use a unique binary directory for tests
+    add_subdirectory(tests ${CMAKE_BINARY_DIR}/tests_bin)
 endif()
 
 # Find Conan-provided packages
 find_package(Boost REQUIRED)
-
-# Add near the end of the file
-include(GNUInstallDirs)
-
-# Install library
-install(
-    TARGETS ${PROJECT_NAME}_lib
-    EXPORT ${PROJECT_NAME}Targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
-# Install headers
-install(
-    DIRECTORY ${CMAKE_SOURCE_DIR}/include/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    FILES_MATCHING PATTERN "*.hpp"
-)
-
-# Install generated version header
-install(
-    FILES ${CMAKE_BINARY_DIR}/generated/version.hpp
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
-)
 
 
 

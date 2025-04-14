@@ -11,28 +11,37 @@ if (BUILD_TESTS AND CMAKE_BUILD_TYPE MATCHES "Debug|Test")
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
 
-    # Add subdirectory for tests
-    add_subdirectory(${CMAKE_SOURCE_DIR}/tests)
-
     # Add code coverage option
     option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
     if(ENABLE_COVERAGE)
         if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+# Add coverage flags to the library
             target_compile_options(${PROJECT_NAME}_lib PRIVATE --coverage)
             target_link_options(${PROJECT_NAME}_lib PRIVATE --coverage)
-            foreach(TEST_TARGET memory_issues_ut thread_issues_ut)
-                target_compile_options(${TEST_TARGET} PRIVATE --coverage)
-                target_link_options(${TEST_TARGET} PRIVATE --coverage)
-            endforeach()
+            
+            # Add coverage flags to test targets
+            if(NOT TARGET coverage_config)
+                add_library(coverage_config INTERFACE)
+                target_compile_options(coverage_config INTERFACE --coverage)
+                target_link_options(coverage_config INTERFACE --coverage)
+            endif()
 
-            # Add a custom target to generate coverage reports
-            add_custom_target(coverage
-                COMMAND lcov --capture --directory . --output-file coverage.info
-                COMMAND lcov --remove coverage.info '/usr/*' '*/googletest-src/*' --output-file coverage.info
-                COMMAND genhtml coverage.info --output-directory coverage_html
-                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                COMMENT "Generating HTML coverage report"
-            )
+            # Create coverage target for report generation
+            if(NOT TARGET coverage)
+                find_program(LCOV lcov REQUIRED)
+                find_program(GENHTML genhtml REQUIRED)
+                
+                add_custom_target(coverage
+                    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/coverage
+                    COMMAND ${LCOV} --directory . --zerocounters
+                    COMMAND ctest --output-on-failure
+                    COMMAND ${LCOV} --directory . --capture --output-file ${CMAKE_BINARY_DIR}/coverage.info
+                    COMMAND ${LCOV} --remove ${CMAKE_BINARY_DIR}/coverage.info '/usr/*' '*/googletest/*' --output-file ${CMAKE_BINARY_DIR}/coverage.info
+                    COMMAND ${GENHTML} ${CMAKE_BINARY_DIR}/coverage.info --output-directory ${CMAKE_BINARY_DIR}/coverage_html
+                    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                    COMMENT "Generating code coverage report..."
+                )
+            endif()
         endif()
     endif()
 endif()
