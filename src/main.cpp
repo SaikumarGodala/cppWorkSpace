@@ -18,6 +18,12 @@ std::vector<std::vector<std::string>> groupAnagrams(const std::vector<std::strin
 int firstUniqueChar(const std::string& s);
 int makeKPeriodic(const std::string& word, int k);
 
+template<typename T1, typename T2>
+auto add(T1 a,  T2 b)
+{
+    return a+b;
+}
+
 int main() {
     constexpr std::size_t ARRAY_SIZE = 2;
     auto shared_array = std::array<int, ARRAY_SIZE>{0, 0};
@@ -28,9 +34,15 @@ int main() {
     uninitializedAccess();
     invalidReadWrite();
     deadlock();
-
+auto c = add(5.0,5);
     return 0;
 }
+
+
+
+
+
+
 
 std::vector<int> processAndSort(std::vector<int>& nums)
 {
